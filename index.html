@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wedding Travel Quoter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: trip inputs on the left, a sticky quote card on the right; a road strip shows included vs chargeable driving. Settings fold away below. */
+:root{
+  --bg:#f3f4f1; --surface:#ffffff; --ink:#1d2a33; --muted:#5d6b73; --line:#d9ddd8;
+  --accent:#e2a32b; --accent-ink:#3a2a05; --road:#2f3e48; --free:#8fb3a3; --charge:#e2a32b;
+  --warn-bg:#fff4d9; --warn-ink:#6b4a00;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141a1e; --surface:#1d252b; --ink:#e7ece9; --muted:#9aa8ae; --line:#2e3a41;
+  --accent:#f0b443; --accent-ink:#241900; --road:#0d1215; --free:#5f8a78; --charge:#f0b443;
+  --warn-bg:#3a2f12; --warn-ink:#f5d78f; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#141a1e; --surface:#1d252b; --ink:#e7ece9; --muted:#9aa8ae; --line:#2e3a41;
+  --accent:#f0b443; --accent-ink:#241900; --road:#0d1215; --free:#5f8a78; --charge:#f0b443;
+  --warn-bg:#3a2f12; --warn-ink:#f5d78f; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);padding:0 16px}
+.wrap{max-width:1040px;margin:0 auto;padding-block:32px 56px;display:grid;gap:28px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(1.7rem,4vw,2.3rem);font-weight:700}
+h2{font-size:1.15rem;font-weight:700}
+.lede{color:var(--muted);max-width:62ch;margin:6px 0 0}
+.label{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:18px;min-width:0}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.field{display:grid;gap:6px;min-width:0}
+.field label{font-size:.85rem;font-weight:600}
+.field small{color:var(--muted);font-size:.78rem}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%;font-variant-numeric:tabular-nums}
+input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.time{display:flex;gap:8px;align-items:center}
+.time input{width:auto;flex:1;min-width:0}
+.time span{color:var(--muted);font-size:.85rem}
+.check{display:flex;gap:10px;align-items:center;font-weight:500}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+a{color:inherit;text-decoration-color:var(--accent);text-underline-offset:3px}
+
+/* road strip */
+.road{display:grid;gap:8px}
+.strip{position:relative;height:30px;background:var(--road);border-radius:6px;overflow:hidden;display:flex}
+.strip .seg{height:100%;transition:width .3s ease}
+.strip .free{background:var(--free)}
+.strip .chg{background:repeating-linear-gradient(90deg,var(--charge) 0 18px,transparent 18px 26px);background-color:transparent;position:relative}
+.strip .chg::before{content:"";position:absolute;inset:11px 0;background:var(--charge);opacity:.25}
+.ends{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);gap:8px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.8rem;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px}
+
+/* quote card */
+.quote{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);border-top:5px solid var(--accent)}
+.total{font-family:var(--display);font-size:clamp(2.4rem,7vw,3.2rem);font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.sub{color:var(--muted);font-size:.85rem}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+td{padding:8px 0;border-bottom:1px solid var(--line);vertical-align:top}
+td:last-child{text-align:right;white-space:nowrap;padding-left:12px}
+td small{display:block;color:var(--muted);font-size:.78rem}
+tr.zero td{color:var(--muted)}
+.flag{background:var(--warn-bg);color:var(--warn-ink);border-radius:8px;padding:10px 12px;font-size:.88rem}
+.copybox{display:grid;gap:8px}
+textarea{font:inherit;font-size:.9rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;width:100%;min-height:110px;resize:vertical}
+button{font:inherit;font-weight:600;cursor:pointer;border-radius:8px;padding:10px 14px;border:1px solid transparent}
+.btn{background:var(--accent);color:var(--accent-ink)}
+.btn-quiet{background:transparent;border-color:var(--line);color:var(--ink)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.compare{font-size:.82rem;color:var(--muted)}
+
+details{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+summary{cursor:pointer;padding:18px 22px;font-family:var(--display);font-weight:700;font-size:1.05rem}
+details .inner{padding:0 22px 22px;display:grid;gap:18px}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));column-gap:32px}
+.set{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--line);min-width:0}
+.set-text{display:grid;gap:2px;min-width:0}
+.set-text label{font-weight:600;font-size:.9rem}
+.set-text small{color:var(--muted);font-size:.78rem}
+.ctl{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.ctl input[type=number]{width:5.5em;text-align:right}
+.ctl select{width:6em}
+.ctl .unit{color:var(--muted);font-size:.85rem;white-space:nowrap}
+.ctl .tick{width:20px;height:20px;accent-color:var(--accent)}
+@media (max-width:420px){.set{flex-wrap:wrap}.ctl{margin-left:auto}}
+.time input{min-width:3.5em}
+.howto{color:var(--muted);font-size:.9rem;max-width:70ch;display:grid;gap:8px}
+.howto p{margin:0}
+@media (prefers-reduced-motion:reduce){.strip .seg{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="label">Travel fee · from Sunbury</div>
+    <h1>Wedding Travel Quoter</h1>
+    <p class="lede">Enter the one-way distance and drive time from Google Maps. The first 1 hr 45 min each way is included in your package; only the driving beyond that is charged.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="trip-h">
+      <h2 id="trip-h">The trip</h2>
+      <div class="fields">
+        <div class="field" style="grid-column:1/-1">
+          <label for="venue">Venue or town</label>
+          <input id="venue" type="text" value="Bright, VIC (example)">
+        </div>
+        <div class="field">
+          <label for="km">Distance one way</label>
+          <input id="km" type="number" min="0" step="1" value="300" inputmode="decimal">
+          <small>Kilometres</small>
+        </div>
+        <div class="field">
+          <label for="hrs">Drive time one way</label>
+          <div class="time">
+            <input id="hrs" type="number" min="0" step="1" value="3" aria-label="Hours"><span>h</span>
+            <input id="mins" type="number" min="0" max="59" step="1" value="35" aria-label="Minutes"><span>m</span>
+          </div>
+        </div>
+      </div>
+      <div class="row"><a id="maps" href="https://www.google.com/maps/dir/Sunbury+VIC/" target="_blank" rel="noopener">Open route from Sunbury in Google Maps ↗</a></div>
+
+      <div class="road" aria-label="Each leg of the drive">
+        <div class="label">Each leg of the drive</div>
+        <div class="strip"><div class="seg free" id="segFree"></div><div class="seg chg" id="segChg"></div></div>
+        <div class="ends"><span>Sunbury</span><span id="splitNote"></span><span id="endName">Venue</span></div>
+        <div class="legend"><span><i style="background:var(--free)"></i>Included</span><span><i style="background:var(--charge)"></i>Charged</span></div>
+      </div>
+
+      <h2>Extras for this wedding</h2>
+      <div class="fields">
+        <div class="field">
+          <label for="tolls">Tolls, parking, ferries</label>
+          <input id="tolls" type="number" min="0" step="1" value="0">
+          <small>Round trip, at cost ($)</small>
+        </div>
+        <div class="field">
+          <label for="nights">Nights away</label>
+          <input id="nights" type="number" min="0" step="1" value="1">
+        </div>
+        <div class="field">
+          <label for="accom">Accommodation per night</label>
+          <input id="accom" type="number" min="0" step="5" value="220">
+          <small>Check real prices for the wedding date ($)</small>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel quote" aria-labelledby="q-h">
+      <div>
+        <div class="label" id="q-h">Travel quote</div>
+        <div class="total" id="total">$0</div>
+        <div class="sub" id="totalSub"></div>
+      </div>
+      <div class="flag" id="flag" hidden></div>
+      <table><tbody id="lines"></tbody></table>
+      <p class="compare" id="compare"></p>
+      <div class="copybox">
+        <label class="label" for="copytext">Line for your quote</label>
+        <textarea id="copytext" readonly></textarea>
+        <div class="row"><button class="btn" id="copyBtn" type="button">Copy text</button><span class="sub" id="copyMsg" role="status"></span></div>
+      </div>
+    </aside>
+  </div>
+
+  <details id="settingsBox">
+    <summary>Your rates and settings</summary>
+    <div class="inner">
+      <p class="sub">These are saved in this browser, so you only set them once.</p>
+      <div class="settings">
+        <div class="set"><div class="set-text"><label for="freeH">Included drive time</label><small>Each way, before you start charging</small></div>
+          <div class="ctl"><input id="freeH" type="number" min="0" step="1" aria-label="Included hours"><span class="unit">h</span><input id="freeM" type="number" min="0" max="59" step="5" aria-label="Included minutes"><span class="unit">m</span></div></div>
+        <div class="set"><div class="set-text"><label for="fuelPrice">Petrol price</label><small>Update every month or two</small></div>
+          <div class="ctl"><span class="unit">$</span><input id="fuelPrice" type="number" min="0" step="0.01"><span class="unit">/L</span></div></div>
+        <div class="set"><div class="set-text"><label for="economy">Fuel use</label><small>Your Astra ranges 5.8 to 8.0</small></div>
+          <div class="ctl"><input id="economy" type="number" min="0" step="0.1"><span class="unit">L/100km</span></div></div>
+        <div class="set"><div class="set-text"><label for="wear">Wear and tear</label><small>Tyres, servicing, general upkeep</small></div>
+          <div class="ctl"><input id="wear" type="number" min="0" step="1"><span class="unit">c/km</span></div></div>
+        <div class="set"><div class="set-text"><label for="hourly">Travel time rate</label><small>For both of you, on the extra driving only</small></div>
+          <div class="ctl"><span class="unit">$</span><input id="hourly" type="number" min="0" step="5"><span class="unit">/hr</span></div></div>
+        <div class="set"><div class="set-text"><label for="overnightAt">Suggest overnight after</label><small>Hours of driving one way</small></div>
+          <div class="ctl"><input id="overnightAt" type="number" min="0" step="0.25"><span class="unit">hrs</span></div></div>
+        <div class="set"><div class="set-text"><label for="roundTo">Round total up to nearest</label></div>
+          <div class="ctl"><select id="roundTo"><option value="1">$1</option><option value="5">$5</option><option value="10">$10</option></select></div></div>
+        <div class="set"><div class="set-text"><label for="gst">Add GST (10%)</label><small>Only if you're GST registered</small></div>
+          <div class="ctl"><input id="gst" type="checkbox" class="tick"></div></div>
+      </div>
+      <div class="row"><button class="btn-quiet" id="resetBtn" type="button">Restore defaults</button></div>
+      <div class="howto">
+        <p><strong>How the fee is worked out.</strong> Your drive time is split into the included part and the extra part. The same share of the kilometres becomes chargeable, so a slow mountain road and a fast freeway are treated fairly.</p>
+        <p><strong>Vehicle cost</strong> = chargeable km for both legs × (fuel per km + wear and tear). <strong>Travel time</strong> = extra hours for both legs × your hourly rate. Accommodation and tolls are added at cost.</p>
+        <p><strong>Accommodation.</strong> Prices swing with season and location, so check a real listing near the venue for the wedding date and round up a little. Charge it at cost. If the couple would rather book your room themselves, set nights to 0.</p>
+        <p><strong>Fuel price.</strong> Update the petrol price every month or two so your quotes keep pace.</p>
+      </div>
+    </div>
+  </details>
+</div>
+
+<script>
+(function(){
+  const DEFAULTS={freeH:1,freeM:45,fuelPrice:2.40,economy:6.9,wear:15,hourly:45,overnightAt:3,roundTo:"5",gst:false};
+  const KEY="travelQuoter.settings.v1";
+  const $=id=>document.getElementById(id);
+  const settingIds=Object.keys(DEFAULTS);
+
+  function loadSettings(){
+    let s={};
+    try{s=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){s={}}
+    return Object.assign({},DEFAULTS,s);
+  }
+  function applySettings(s){
+    settingIds.forEach(k=>{const el=$(k); if(el.type==="checkbox") el.checked=!!s[k]; else el.value=s[k];});
+  }
+  function readSettings(){
+    const s={}; settingIds.forEach(k=>{const el=$(k); s[k]=el.type==="checkbox"?el.checked:(k==="roundTo"?el.value:num(el.value));}); return s;
+  }
+  function saveSettings(){ try{localStorage.setItem(KEY,JSON.stringify(readSettings()))}catch(e){} }
+  function num(v){const n=parseFloat(v);return isFinite(n)&&n>0?n:0}
+  const money=n=>"$"+n.toLocaleString("en-AU",{minimumFractionDigits:0,maximumFractionDigits:0});
+  const money2=n=>"$"+n.toLocaleString("en-AU",{minimumFractionDigits:2,maximumFractionDigits:2});
+  function fmtTime(h){const t=Math.round(h*60);const hh=Math.floor(t/60),mm=t%60;return (hh?hh+" hr ":"")+(mm||!hh?mm+" min":"").trim();}
+
+  function calc(){
+    const s=readSettings();
+    const km=num($("km").value);
+    const drive=num($("hrs").value)+num($("mins").value)/60;
+    const free=s.freeH+s.freeM/60;
+    const extraH=Math.max(0,drive-free);
+    const share=drive>0?extraH/drive:0;
+    const chgKmLeg=km*share;
+    const chgKm=chgKmLeg*2;
+    const perKm=(s.economy/100)*s.fuelPrice+s.wear/100;
+    const vehicle=chgKm*perKm;
+    const timeCost=extraH*2*s.hourly;
+    const tolls=num($("tolls").value);
+    const nights=Math.round(num($("nights").value));
+    const accom=nights*num($("accom").value);
+    let sub=vehicle+timeCost+tolls+accom;
+    const gst=s.gst?sub*0.1:0;
+    const raw=sub+gst;
+    const step=parseFloat(s.roundTo)||1;
+    const total=raw>0?Math.ceil(raw/step)*step:0;
+    return {s,km,drive,free,extraH,share,chgKm,perKm,vehicle,timeCost,tolls,nights,accom,gst,total};
+  }
+
+  function render(){
+    const r=calc(), venue=$("venue").value.trim()||"the venue";
+    // road strip
+    const freePct=r.drive>0?Math.min(100,(Math.min(r.drive,r.free)/r.drive)*100):100;
+    $("segFree").style.width=freePct+"%";
+    $("segChg").style.width=(100-freePct)+"%";
+    $("endName").textContent=venue.replace(/\s*\(example\)/i,"");
+    $("splitNote").textContent=r.extraH>0?fmtTime(r.extraH)+" charged each way":"All included";
+
+    // lines
+    const rows=[
+      ["Vehicle costs",`${Math.round(r.chgKm)} km beyond the included drive × ${Math.round(r.perKm*100)}c/km`,r.vehicle],
+      ["Travel time",`${fmtTime(r.extraH*2)} extra driving (both ways) × ${money(r.s.hourly)}/hr`,r.timeCost],
+      ["Tolls and parking","At cost",r.tolls],
+      ["Accommodation",r.nights?`${r.nights} night${r.nights>1?"s":""} × ${money(r.nights?r.accom/r.nights:0)}`:"Not needed",r.accom]
+    ];
+    if(r.s.gst) rows.push(["GST","10%",r.gst]);
+    $("lines").innerHTML=rows.map(([a,b,v])=>`<tr class="${v>0?"":"zero"}"><td>${a}<small>${b}</small></td><td>${money2(v)}</td></tr>`).join("");
+    $("total").textContent=money(r.total);
+    $("totalSub").textContent=r.total>0?`Rounded up to the nearest $${r.s.roundTo}${r.s.gst?", incl. GST":""}`:"Inside your included drive, no travel fee";
+
+    // overnight flag
+    const flag=$("flag");
+    if(r.drive>=r.s.overnightAt && r.nights===0){flag.hidden=false;flag.textContent=`This is a ${fmtTime(r.drive)} drive each way. Consider adding a night's accommodation.`;}
+    else if(r.drive>0 && r.drive<r.s.overnightAt && r.nights>0){flag.hidden=false;flag.textContent=`Only ${fmtTime(r.drive)} each way. You may not need a night away.`;}
+    else flag.hidden=true;
+
+    // ATO comparison
+    const ato=r.km*2*0.91;
+    $("compare").textContent=r.km>0?`For comparison, the full ATO rate (91c/km) on the whole ${Math.round(r.km*2)} km round trip would be ${money(ato)} before time or accommodation.`:"";
+
+    // copy text
+    const name=venue.replace(/\s*\(example\)/i,"");
+    let t;
+    if(r.total===0){t=`Travel to ${name} is included in your package.`;}
+    else{
+      const driveFee=r.vehicle+r.timeCost+r.tolls;
+      const mult=r.s.gst?1.1:1;
+      t=`Travel to ${name}: ${money(r.total)}${r.s.gst?" (incl. GST)":""}.\n`;
+      if(driveFee>0) t+=`Our packages include up to ${fmtTime(r.free)} of driving each way from Sunbury. This covers fuel, vehicle costs and our time for the extra ${fmtTime(r.extraH)} each way${r.tolls>0?", plus tolls and parking":""}.`;
+      if(r.accom>0) t+=`${driveFee>0?" ":""}It also includes ${r.nights} night${r.nights>1?"s'":"'s"} accommodation near the venue (approx. ${money(r.accom*mult)}), charged at cost.`;
+    }
+    $("copytext").value=t;
+    const q=encodeURIComponent(name);
+    $("maps").href="https://www.google.com/maps/dir/Sunbury+VIC/"+(name&&name!=="the venue"?q:"");
+  }
+
+  applySettings(loadSettings());
+  document.querySelectorAll("input,select").forEach(el=>el.addEventListener("input",()=>{ if(settingIds.includes(el.id)) saveSettings(); render(); }));
+  $("roundTo").addEventListener("change",()=>{saveSettings();render();});
+  $("resetBtn").addEventListener("click",()=>{applySettings(DEFAULTS);saveSettings();render();});
+  $("copyBtn").addEventListener("click",()=>{
+    const ta=$("copytext"),msg=$("copyMsg");
+    try{
+      navigator.clipboard.writeText(ta.value).then(()=>{msg.textContent="Copied"},()=>{ta.select();msg.textContent="Selected. Press Ctrl+C or ⌘C to copy"});
+    }catch(e){ta.select();msg.textContent="Selected. Press Ctrl+C or ⌘C to copy"}
+  });
+  render();
+})();
+</script>
+</body>
+</html>
